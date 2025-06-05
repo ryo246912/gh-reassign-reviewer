@@ -1,0 +1,5 @@
+[tasks]
+build-install = "gh extension remove gh-reassign-reviewer || true && go build . && gh extension install ."
+extension-install = "gh extension install ryo246912/gh-reassign-reviewer"
+lint = "golangci-lint run"
+run = "go run ."
