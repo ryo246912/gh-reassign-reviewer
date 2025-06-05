@@ -10,6 +10,7 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/cli/go-gh/v2/pkg/repository"
+	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
@@ -22,10 +23,8 @@ func getPRNumber(client *api.RESTClient, owner, repo, self string) (int, error) 
 	if len(prs) == 0 {
 		return 0, fmt.Errorf("No assigned pull requests found.")
 	}
-	// テーブル見出し
-	head := fmt.Sprintf("%-4s %-8s %-50s %-20s %-15s %-20s %-20s", "No", "PRNo", "Title", "Author", "State", "Updated", "Created")
-	fmt.Println(head)
-	fmt.Println(strings.Repeat("-", len(head)))
+
+	items := make([]string, len(prs))
 	for i, pr := range prs {
 		state := pr.State
 		if pr.Draft {
@@ -35,20 +34,18 @@ func getPRNumber(client *api.RESTClient, owner, repo, self string) (int, error) 
 		if len(title) > 75 {
 			title = title[:75] + "..."
 		}
-		fmt.Printf("%-4d %-8d %-50s %-20s %-15s %-20s %-20s\n",
-			i+1, pr.Number, title, pr.User.Login, state, pr.UpdatedAt, pr.CreatedAt)
+		items[i] = fmt.Sprintf("#%-6d %-50s %-15s %-20s %-20s", pr.Number, title, pr.User.Login, state, pr.UpdatedAt)
 	}
-	var idx int
-	for {
-		fmt.Print("Enter number: ")
-		_, err := fmt.Scan(&idx)
-		if err != nil || idx < 1 || idx > len(prs) {
-			fmt.Printf("Please enter a number between 1 and %d\n", len(prs))
-			continue
-		}
-		break
+	prompt := promptui.Select{
+		Label: "Select PR",
+		Items: items,
+		Size:  12,
 	}
-	return prs[idx-1].Number, nil
+	idx, _, err := prompt.Run()
+	if err != nil {
+		return 0, fmt.Errorf("prompt failed: %w", err)
+	}
+	return prs[idx].Number, nil
 }
 
 // PRのレビュー履歴・コメント履歴から自分以外のユーザー（bot除外）を抽出
@@ -245,23 +242,16 @@ func runCommand() error {
 		fmt.Printf("%d. %s\n", i+1, reviewer)
 	}
 
-	// reviewerを選択
-	var selectedIndex int
-	for {
-		fmt.Print("Select a reviewer (enter number): ")
-		_, err := fmt.Scan(&selectedIndex)
-		if err != nil {
-			fmt.Println("Invalid input, please try again")
-			continue
-		}
-		if selectedIndex < 1 || selectedIndex > len(reviewers) {
-			fmt.Printf("Please enter a number between 1 and %d\n", len(reviewers))
-			continue
-		}
-		break
+	// reviewerをpromptuiで選択
+	prompt := promptui.Select{
+		Label: "Select reviewer",
+		Items: reviewers,
+		Size:  12,
 	}
-
-	selectedReviewer := reviewers[selectedIndex-1]
+	_, selectedReviewer, err := prompt.Run()
+	if err != nil {
+		return fmt.Errorf("reviewer selection failed: %w", err)
+	}
 
 	var confirm string
 	fmt.Printf("You selected: %s. Is this correct? (y/n): ", selectedReviewer)
