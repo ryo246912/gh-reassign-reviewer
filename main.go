@@ -14,9 +14,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// 共通のPR情報型
+type PullRequestInfo struct {
+	Number    int
+	Title     string
+	User      string
+	State     string
+	Draft     bool
+	UpdatedAt string
+	CreatedAt string
+}
+
 // 自分がアサインされているPRの一覧を取得し、選択肢を表示
-func getPRNumber(client *api.RESTClient, owner, repo, self string) (int, error) {
-	prs, err := getAssignedPullRequests(client, owner, repo, self)
+func getPRNumber(client *api.RESTClient, gqlClient api.GraphQLClient, owner, repo, self string) (int, error) {
+	prs, err := getAssignedPullRequests(gqlClient, owner, repo, self)
 	if err != nil {
 		return 0, err
 	}
@@ -34,7 +45,7 @@ func getPRNumber(client *api.RESTClient, owner, repo, self string) (int, error) 
 		if len(title) > 75 {
 			title = title[:75] + "..."
 		}
-		items[i] = fmt.Sprintf("#%-6d %-50s %-15s %-20s %-20s", pr.Number, title, pr.User.Login, state, pr.UpdatedAt)
+		items[i] = fmt.Sprintf("#%-6d %-50s %-15s %-20s %-20s", pr.Number, title, pr.User, state, pr.UpdatedAt)
 	}
 	prompt := promptui.Select{
 		Label: "Select PR",
@@ -127,73 +138,76 @@ func getCurrentUserLogin(client *api.RESTClient) (string, error) {
 }
 
 // 自分がassigneeのPR一覧を取得
-func getAssignedPullRequests(client *api.RESTClient, owner, repo, self string) ([]struct {
-	Number int    `json:"number"`
-	Title  string `json:"title"`
-	User   struct {
-		Login string `json:"login"`
-	} `json:"user"`
-	State     string `json:"state"`
-	Draft     bool   `json:"draft"`
-	UpdatedAt string `json:"updated_at"`
-	CreatedAt string `json:"created_at"`
-}, error) {
-	path := fmt.Sprintf("repos/%s/%s/pulls?state=open&per_page=100", owner, repo)
-	var pulls []struct {
-		Number int    `json:"number"`
-		Title  string `json:"title"`
-		User   struct {
-			Login string `json:"login"`
-		} `json:"user"`
-		State     string `json:"state"`
-		Draft     bool   `json:"draft"`
-		UpdatedAt string `json:"updated_at"`
-		CreatedAt string `json:"created_at"`
-		Assignees []struct {
-			Login string `json:"login"`
-		} `json:"assignees"`
+func getAssignedPullRequests(client api.GraphQLClient, owner, repo, self string) ([]PullRequestInfo, error) {
+	query := `
+query ($query: String!, $first: Int = 100, $endCursor: String) {
+  search(
+    type: ISSUE,
+    query: $query,
+    first: $first,
+    after: $endCursor
+  ) {
+    nodes {
+      ... on PullRequest {
+        number
+        title
+        state
+        isDraft
+        updatedAt
+        createdAt
+        author {
+          login
+        }
+      }
+    }
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+  }
+}
+`
+
+	variables := map[string]interface{}{
+		"query":     fmt.Sprintf("repo:%s/%s is:pr state:open assignee:@me sort:created-desc", owner, repo),
+		"endCursor": nil,
 	}
-	if err := client.Get(path, &pulls); err != nil {
-		return nil, fmt.Errorf("failed to fetch pull requests: %w", err)
+
+	var resp struct {
+		Search struct {
+			Nodes []struct {
+				Number    int    `json:"number"`
+				Title     string `json:"title"`
+				State     string `json:"state"`
+				IsDraft   bool   `json:"isDraft"`
+				UpdatedAt string `json:"updatedAt"`
+				CreatedAt string `json:"createdAt"`
+				Author    struct {
+					Login string `json:"login"`
+				} `json:"author"`
+			} `json:"nodes"`
+			PageInfo struct {
+				HasNextPage bool   `json:"hasNextPage"`
+				EndCursor   string `json:"endCursor"`
+			} `json:"pageInfo"`
+		} `json:"search"`
 	}
-	var assigned []struct {
-		Number int    `json:"number"`
-		Title  string `json:"title"`
-		User   struct {
-			Login string `json:"login"`
-		} `json:"user"`
-		State     string `json:"state"`
-		Draft     bool   `json:"draft"`
-		UpdatedAt string `json:"updated_at"`
-		CreatedAt string `json:"created_at"`
+
+	err := client.Do(query, variables, &resp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch pull requests (GraphQL): %w", err)
 	}
-	for _, pr := range pulls {
-		for _, a := range pr.Assignees {
-			if a.Login == self {
-				assigned = append(assigned, struct {
-					Number int    `json:"number"`
-					Title  string `json:"title"`
-					User   struct {
-						Login string `json:"login"`
-					} `json:"user"`
-					State     string `json:"state"`
-					Draft     bool   `json:"draft"`
-					UpdatedAt string `json:"updated_at"`
-					CreatedAt string `json:"created_at"`
-				}{
-					Number: pr.Number,
-					Title:  pr.Title,
-					User: struct {
-						Login string `json:"login"`
-					}{Login: pr.User.Login},
-					State:     pr.State,
-					Draft:     pr.Draft,
-					UpdatedAt: pr.UpdatedAt,
-					CreatedAt: pr.CreatedAt,
-				})
-				break
-			}
-		}
+	assigned := make([]PullRequestInfo, 0, len(resp.Search.Nodes))
+	for _, pr := range resp.Search.Nodes {
+		assigned = append(assigned, PullRequestInfo{
+			Number:    pr.Number,
+			Title:     pr.Title,
+			User:      pr.Author.Login,
+			State:     pr.State,
+			Draft:     pr.IsDraft,
+			UpdatedAt: pr.UpdatedAt,
+			CreatedAt: pr.CreatedAt,
+		})
 	}
 	return assigned, nil
 }
@@ -209,6 +223,11 @@ func runCommand() error {
 		return fmt.Errorf("failed to create GitHub client: %w", err)
 	}
 
+	gqlClient, err := api.DefaultGraphQLClient()
+	if err != nil {
+		return fmt.Errorf("failed to create GraphQL client: %w", err)
+	}
+
 	self, err := getCurrentUserLogin(client)
 	if err != nil {
 		return fmt.Errorf("failed to get current user: %w", err)
@@ -221,7 +240,7 @@ func runCommand() error {
 			return fmt.Errorf("invalid PR number: %w", err)
 		}
 	} else {
-		prNumber, err = getPRNumber(client, repo.Owner, repo.Name, self)
+		prNumber, err = getPRNumber(client, *gqlClient, repo.Owner, repo.Name, self)
 		if err != nil {
 			return fmt.Errorf("failed to get PR number: %w", err)
 		}
