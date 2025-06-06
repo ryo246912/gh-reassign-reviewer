@@ -273,14 +273,20 @@ func runCommand() error {
 	}
 
 	var confirm string
-	fmt.Printf("You selected: %s. Is this correct? (y/n): ", selectedReviewer)
-	if _, err := fmt.Scan(&confirm); err != nil {
-		return fmt.Errorf("failed to read confirmation: %w", err)
-	}
-
-	if strings.ToLower(confirm) != "yes" && strings.ToLower(confirm) != "y" {
-		fmt.Println("Reviewer selection cancelled")
-		return nil
+	for {
+		fmt.Printf("You selected: %s. Is this correct? (y/n): ", selectedReviewer)
+		if _, err := fmt.Scan(&confirm); err != nil {
+			return fmt.Errorf("failed to read confirmation: %w", err)
+		}
+		confirmLower := strings.ToLower(confirm)
+		if confirmLower == "yes" || confirmLower == "y" {
+			break
+		} else if confirmLower == "no" || confirmLower == "n" {
+			fmt.Println("Reviewer selection cancelled")
+			return nil
+		} else {
+			fmt.Println("Please enter 'y' or 'n'.")
+		}
 	}
 
 	err = reassignReviewers(client, repo.Owner, repo.Name, prNumber, []string{selectedReviewer})
