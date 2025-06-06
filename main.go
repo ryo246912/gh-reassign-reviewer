@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// 共通のPR情報型
+// Common PR info struct
 type PullRequestInfo struct {
 	Number    int
 	Title     string
@@ -25,7 +25,6 @@ type PullRequestInfo struct {
 	CreatedAt string
 }
 
-// 自分がアサインされているPRの一覧を取得し、選択肢を表示
 func getPRNumber(client *api.RESTClient, gqlClient api.GraphQLClient, owner, repo, self string) (int, error) {
 	prs, err := getAssignedPullRequests(gqlClient, owner, repo, self)
 	if err != nil {
@@ -59,7 +58,7 @@ func getPRNumber(client *api.RESTClient, gqlClient api.GraphQLClient, owner, rep
 	return prs[idx].Number, nil
 }
 
-// PRのレビュー履歴・コメント履歴から自分以外のユーザー（bot除外）を抽出
+// Extract users (excluding self and bots) from PR review and comment history
 func getReviewersAndCommenters(client *api.RESTClient, owner, repo string, prNumber int, self string) ([]string, error) {
 	userSet := make(map[string]struct{})
 
@@ -126,7 +125,6 @@ func reassignReviewers(client *api.RESTClient, owner, repo string, prNumber int,
 	return nil
 }
 
-// 自分のGitHubユーザー名をAPIで取得
 func getCurrentUserLogin(client *api.RESTClient) (string, error) {
 	var user struct {
 		Login string `json:"login"`
@@ -137,7 +135,6 @@ func getCurrentUserLogin(client *api.RESTClient) (string, error) {
 	return user.Login, nil
 }
 
-// 自分がassigneeのPR一覧を取得
 func getAssignedPullRequests(client api.GraphQLClient, owner, repo, self string) ([]PullRequestInfo, error) {
 	query := `
 query ($query: String!, $first: Int = 100, $endCursor: String) {
@@ -261,7 +258,7 @@ func runCommand() error {
 		fmt.Printf("%d. %s\n", i+1, reviewer)
 	}
 
-	// reviewerをpromptuiで選択
+	// select reviewer
 	prompt := promptui.Select{
 		Label: "Select reviewer",
 		Items: reviewers,
