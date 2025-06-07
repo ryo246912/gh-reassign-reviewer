@@ -302,8 +302,8 @@ func main() {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCommand()
 		},
+		SilenceUsage: true,
 	}
-	cmd.SilenceUsage = true
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
