@@ -10,6 +10,7 @@ import (
 
 	"github.com/cli/go-gh/v2/pkg/api"
 	"github.com/cli/go-gh/v2/pkg/repository"
+	graphql "github.com/cli/shurcooL-graphql"
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
@@ -136,66 +137,71 @@ func getCurrentUserLogin(client *api.RESTClient) (string, error) {
 }
 
 func getAssignedPullRequests(client api.GraphQLClient, owner, repo, self string) ([]PullRequestInfo, error) {
-	query := `
-query ($query: String!, $first: Int = 100, $endCursor: String) {
-  search(
-    type: ISSUE,
-    query: $query,
-    first: $first,
-    after: $endCursor
-  ) {
-    nodes {
-      ... on PullRequest {
-        number
-        title
-        state
-        isDraft
-        updatedAt
-        createdAt
-        author {
-          login
-        }
-      }
-    }
-    pageInfo {
-      hasNextPage
-      endCursor
-    }
-  }
-}
-`
-
-	variables := map[string]interface{}{
-		"query":     fmt.Sprintf("repo:%s/%s is:pr state:open assignee:@me sort:created-desc", owner, repo),
-		"endCursor": nil,
-	}
-
-	var resp struct {
+	// NOTE: https://github.com/cli/go-gh/blob/a08820a13f257d6c5b4cb86d37db559ec6d14577/example_gh_test.go#L233
+	// query := `
+	// 	query ($query: String!, $first: Int = 100, $endCursor: String) {
+	// 		search(
+	// 			type: ISSUE,
+	// 			query: $query,
+	// 			first: $first,
+	// 			after: $endCursor
+	// 		) {
+	// 			nodes {
+	// 				... on PullRequest {
+	// 					number
+	// 					title
+	// 					state
+	// 					isDraft
+	// 					updatedAt
+	// 					createdAt
+	// 					author {
+	// 						login
+	// 					}
+	// 				}
+	// 			}
+	// 			pageInfo {
+	// 				hasNextPage
+	// 				endCursor
+	// 			}
+	// 		}
+	// 	}
+	// `
+	var q struct {
 		Search struct {
 			Nodes []struct {
-				Number    int    `json:"number"`
-				Title     string `json:"title"`
-				State     string `json:"state"`
-				IsDraft   bool   `json:"isDraft"`
-				UpdatedAt string `json:"updatedAt"`
-				CreatedAt string `json:"createdAt"`
-				Author    struct {
-					Login string `json:"login"`
-				} `json:"author"`
-			} `json:"nodes"`
+				PullRequest struct {
+					Number    int
+					Title     string
+					State     string
+					IsDraft   bool
+					UpdatedAt string
+					CreatedAt string
+					Author    struct {
+						Login string
+					}
+				} `graphql:"... on PullRequest"`
+			}
 			PageInfo struct {
-				HasNextPage bool   `json:"hasNextPage"`
-				EndCursor   string `json:"endCursor"`
-			} `json:"pageInfo"`
-		} `json:"search"`
+				HasNextPage bool
+				EndCursor   string
+			}
+		} `graphql:"search(type: ISSUE, query: $query, first: $first, after: $endCursor)"`
 	}
 
-	err := client.Do(query, variables, &resp)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch pull requests (GraphQL): %w", err)
+	variables := map[string]interface{}{
+		"query":     graphql.String(fmt.Sprintf("repo:%s/%s is:pr state:open assignee:%s sort:created-desc", owner, repo, self)),
+		"first":     graphql.Int(100),
+		"endCursor": (*graphql.String)(nil),
 	}
-	assigned := make([]PullRequestInfo, 0, len(resp.Search.Nodes))
-	for _, pr := range resp.Search.Nodes {
+
+	err := client.Query("", &q, variables)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch pull requests (GraphQL struct): %w", err)
+	}
+
+	assigned := make([]PullRequestInfo, 0, len(q.Search.Nodes))
+	for _, node := range q.Search.Nodes {
+		pr := node.PullRequest
 		assigned = append(assigned, PullRequestInfo{
 			Number:    pr.Number,
 			Title:     pr.Title,
