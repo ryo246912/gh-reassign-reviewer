@@ -1,0 +1,53 @@
+name: release
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    if: ${{ github.ref_name == 'main' && ! contains(github.event.head_commit.message, '[no tag]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate Next Version Tag
+        run: |
+          latest_tag=$(git tag -l --sort=version:refname "v[0-9]*" | tail -n 1)
+          version=${latest_tag#v}
+          IFS='.' read -r major minor patch <<< "$version"
+          major=${major:-0}
+          minor=${minor:-0}
+          patch=${patch:-0}
+
+          # -F : match exact string
+          if echo "$COMMIT_MESSAGE" | grep -qF '[major]'; then
+            major=$((major+1))
+            minor=0
+            patch=0
+          elif echo "$COMMIT_MESSAGE" | grep -qF '[minor]'; then
+            minor=$((minor+1))
+            patch=0
+          else
+            patch=$((patch+1))
+          fi
+          release_tag="v${major}.${minor}.${patch}"
+          echo "release_tag=${release_tag}" >> $GITHUB_ENV
+        env:
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+      - name: Release
+        uses: cli/gh-extension-precompile@v2
+        with:
+          go_version_file: go.mod
+          release_tag: ${{ env.release_tag }}
