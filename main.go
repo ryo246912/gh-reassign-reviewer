@@ -12,6 +12,7 @@ import (
 	"github.com/cli/go-gh/v2/pkg/repository"
 	graphql "github.com/cli/shurcooL-graphql"
 	"github.com/manifoldco/promptui"
+	"github.com/mattn/go-runewidth"
 	"github.com/spf13/cobra"
 )
 
@@ -24,6 +25,14 @@ type PullRequestInfo struct {
 	Draft     bool
 	UpdatedAt string
 	CreatedAt string
+}
+
+func padRight(str string, width int) string {
+	w := runewidth.StringWidth(str)
+	if w < width {
+		return str + strings.Repeat(" ", width-w)
+	}
+	return str
 }
 
 func getPRNumber(client *api.RESTClient, gqlClient api.GraphQLClient, owner, repo, self string) (int, error) {
@@ -43,9 +52,16 @@ func getPRNumber(client *api.RESTClient, gqlClient api.GraphQLClient, owner, rep
 		}
 		title := pr.Title
 		if len(title) > 75 {
-			title = title[:75] + "..."
+			title = title[:72] + "..."
 		}
-		items[i] = fmt.Sprintf("#%-6d %-50s %-15s %-20s %-20s", pr.Number, title, pr.User, state, pr.UpdatedAt)
+		items[i] = fmt.Sprintf(
+			"#%s %s %s %s %s",
+			padRight(fmt.Sprintf("%-6d", pr.Number), 7),
+			padRight(title, 75),
+			padRight(pr.User, 15),
+			padRight(state, 10),
+			padRight(pr.UpdatedAt, 20),
+		)
 	}
 	prompt := promptui.Select{
 		Label: "Select PR",
