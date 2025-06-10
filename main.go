@@ -67,6 +67,10 @@ func getPRNumber(client *api.RESTClient, gqlClient api.GraphQLClient, owner, rep
 		Label: "Select PR",
 		Items: items,
 		Size:  12,
+		Searcher: func(input string, index int) bool {
+			return strings.Contains(strings.ToLower(items[index]), input)
+		},
+		StartInSearchMode: true,
 	}
 	idx, _, err := prompt.Run()
 	if err != nil {
@@ -285,6 +289,10 @@ func runCommand() error {
 		Label: "Select reviewer",
 		Items: reviewers,
 		Size:  12,
+		Searcher: func(input string, index int) bool {
+			return strings.Contains(strings.ToLower(reviewers[index]), input)
+		},
+		StartInSearchMode: true,
 	}
 	_, selectedReviewer, err := prompt.Run()
 	if err != nil {
