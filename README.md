@@ -2,6 +2,8 @@
 
 A GitHub CLI extension to re-request reviews from users who have already been requested on a pull request.
 
+![demo.gif](./asset/demo.gif)
+
 ---
 
 ## Overview
