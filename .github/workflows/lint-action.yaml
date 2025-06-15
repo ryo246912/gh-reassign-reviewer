@@ -31,9 +31,7 @@ jobs:
       - uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
         with:
           version: 2024.12.24
-          experimental: true
-          tool_versions: |
-            actionlint 1.7.7
+          install_args: "actionlint"
       - name: actionlint
         run: |
           actionlint \
@@ -52,9 +50,7 @@ jobs:
       - uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
         with:
           version: 2024.12.24
-          experimental: true
-          tool_versions: |
-            aqua:suzuki-shunsuke/ghalint 1.5.1
+          install_args: "aqua:suzuki-shunsuke/ghalint"
       - name: ghalint
         run: ghalint run
         env:
@@ -72,9 +68,7 @@ jobs:
       - uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
         with:
           version: 2024.12.24
-          experimental: true
-          tool_versions: |
-            pipx:zizmor 1.9.0
+          install_args: "pipx:zizmor"
       - name: zizmor
         run: zizmor --pedantic --format=github --min-severity=low .github/workflows
         env:

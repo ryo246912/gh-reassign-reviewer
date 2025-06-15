@@ -6,4 +6,7 @@ lint-action       = "actionlint -ignore 'SC2016:' || true && ghalint run || true
 run               = "go run ."
 
 [tools]
-golangci-lint = "2.1.6"
+actionlint                     = "1.7.7"
+"aqua:suzuki-shunsuke/ghalint" = "1.5.1"
+golangci-lint                  = "2.1.6"
+"pipx:zizmor"                  = "1.9.0"
