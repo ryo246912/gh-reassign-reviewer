@@ -2,10 +2,10 @@ module github.com/ryo246912/gh-reassign-reviewer
 
 go 1.23.0
 
-toolchain go1.23.6
+toolchain go1.24.4
 
 require (
-	github.com/cli/go-gh/v2 v2.12.0
+	github.com/cli/go-gh/v2 v2.12.1
 	github.com/cli/shurcooL-graphql v0.0.4
 	github.com/manifoldco/promptui v0.9.0
 	github.com/mattn/go-runewidth v0.0.16
