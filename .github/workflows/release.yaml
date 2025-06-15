@@ -44,7 +44,7 @@ jobs:
             patch=$((patch+1))
           fi
           release_tag="v${major}.${minor}.${patch}"
-          echo "release_tag=${release_tag}" >> $GITHUB_ENV
+          echo "release_tag=${release_tag}" >> "$GITHUB_ENV"
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
       - name: Release

@@ -1,11 +1,11 @@
 name: lint-action
 on:
   push:
+    branches:
+      - main
     paths:
       - ".github/workflows/*.yaml"
   pull_request:
-    branches:
-      - main
     paths:
       - ".github/workflows/*.yaml"
 
@@ -16,12 +16,33 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
+  actionlint:
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: read
-    timeout-minutes: 3
+    timeout-minutes: 1
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
+        with:
+          version: 2024.12.24
+          experimental: true
+          tool_versions: |
+            actionlint 1.7.7
+      - name: actionlint
+        run: |
+          actionlint \
+          -format '{{range $err := .}}::error file={{$err.Filepath}},line={{$err.Line}},col={{$err.Column}}::{{$err.Message}}%0A```%0A{{replace $err.Snippet "\\n" "%0A"}}%0A```\n{{end}}' \
+          -ignore 'SC2016:'
+  zizmor:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    timeout-minutes: 1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
@@ -32,9 +53,6 @@ jobs:
           experimental: true
           tool_versions: |
             pipx:zizmor 1.9.0
-            actionlint 1.7.7
-      - name: actionlint
-        run: actionlint .github/workflows/*
       - name: zizmor
         run: zizmor --pedantic --format=github --min-severity=low .github/workflows
         env:
