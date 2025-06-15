@@ -1,0 +1,31 @@
+name: lint-action
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: lint-action-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: jdx/mise-action@v2
+        with:
+          version: 2024.12.24
+          experimental: true
+          tool_versions: |
+            aqua:suzuki-shunsuke/pinact 3.3.0
+      - run: pinact run --check

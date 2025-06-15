@@ -1,4 +1,4 @@
-name: lint
+name: lint-go
 on:
   push:
     branches:
@@ -10,7 +10,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: lint-${{ github.ref }}
+  group: lint-go-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
