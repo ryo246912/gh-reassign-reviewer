@@ -3,3 +3,6 @@ build-install = "gh extension remove gh-reassign-reviewer || true && go build . 
 extension-install = "gh extension install ryo246912/gh-reassign-reviewer"
 lint = "golangci-lint run"
 run = "go run ."
+
+[tools]
+golangci-lint = "latest"
