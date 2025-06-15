@@ -28,12 +28,19 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
+      - name: read mise.toml
+        run: |
+          CONTENT=$(cat mise.toml)
+          {
+            echo "MISE_TOML<<EOF"
+            echo "$CONTENT"
+            echo "EOF"
+          } >> "$GITHUB_ENV"
       - uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
         with:
           version: 2024.12.24
-          experimental: true
-          tool_versions: |
-            actionlint 1.7.7
+          install_args: "actionlint"
+          mise_toml: ${{ env.MISE_TOML }}
       - name: actionlint
         run: |
           actionlint \
