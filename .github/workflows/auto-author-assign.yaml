@@ -23,7 +23,7 @@ jobs:
     steps:
       - name: pull request auto assignee
         if: ${{ toJSON(github.event.pull_request.assignees) == '[]' && ! endsWith(github.actor, '[bot]') }}
-        run: gh pr edit $NUMBER --add-assignee $ASSIGNEE
+        run: gh pr edit "$NUMBER" --add-assignee "$ASSIGNEE"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -32,7 +32,7 @@ jobs:
 
       - name: issue auto assignee
         if: ${{ toJSON(github.event.issue.assignees) == '[]' }}
-        run: gh issue edit $NUMBER --add-assignee $ASSIGNEE
+        run: gh issue edit "$NUMBER" --add-assignee "$ASSIGNEE"
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
