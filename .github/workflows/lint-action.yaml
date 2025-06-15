@@ -1,9 +1,13 @@
 name: lint-action
 on:
   push:
+    paths:
+      - ".github/workflows/*.yaml"
   pull_request:
     branches:
       - main
+    paths:
+      - ".github/workflows/*.yaml"
 
 permissions: {}
 
