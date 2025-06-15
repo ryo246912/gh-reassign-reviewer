@@ -41,7 +41,7 @@ func getPRNumber(client *api.RESTClient, gqlClient api.GraphQLClient, owner, rep
 		return 0, err
 	}
 	if len(prs) == 0 {
-		return 0, fmt.Errorf("No assigned pull requests found.")
+		return 0, fmt.Errorf("no assigned pull requests found")
 	}
 
 	items := make([]string, len(prs))
