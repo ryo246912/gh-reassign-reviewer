@@ -5,4 +5,4 @@ lint = "golangci-lint run"
 run = "go run ."
 
 [tools]
-golangci-lint = "latest"
+golangci-lint = "2.1.6"
