@@ -1,12 +1,108 @@
-[tasks]
-build-install     = "gh extension remove gh-reassign-reviewer || true && go build . && gh extension install ."
-extension-install = "gh extension install ryo246912/gh-reassign-reviewer"
-lint-action       = "actionlint -ignore 'SC2016:' || true && ghalint run || true && zizmor --pedantic --gh-token=$(gh auth token) --min-severity=low .github/workflows"
-lint-go           = "golangci-lint run"
-run               = "go run ."
+[tasks.go-build]
+run = "go run ."
+
+[tasks.extension-remote-install]
+description = "install gh-reassign-reviewer extension"
+run         = "gh extension install ryo246912/gh-reassign-reviewer"
+
+[tasks.extension-local-install]
+description = "install gh-reassign-reviewer extension(local)"
+run = [
+    "go build .",
+    "gh extension install .",
+]
+
+[tasks.extension-build-install]
+description = "Rebuild and install gh-reassign-reviewer extension"
+run = [
+    "gh extension remove gh-reassign-reviewer",
+    "mise run extension-local-install",
+]
+
+[tasks.lint-actionlint]
+description = "Run actionlint"
+hide        = true
+run         = "actionlint -ignore 'SC2016:'"
+
+[tasks.lint-zizmor]
+description = "Run zizmor"
+hide        = true
+run         = "zizmor --pedantic --gh-token=$(gh auth token) --min-severity=low .github/workflows"
+
+[tasks.lint-ghalint]
+description = "Run ghalint"
+hide        = true
+run         = "ghalint run"
+
+[tasks.lint-action]
+depends = [
+    "lint-actionlint",
+    "lint-ghalint",
+    "lint-zizmor",
+]
+description = "Run all action linters"
+
+[tasks.lint-golangci]
+description = "Run golangci-lint"
+run         = "golangci-lint run"
+
+[tasks.lint-gomod]
+description = "go mod tidy"
+run         = "go mod tidy"
+
+[tasks.lint-go]
+depends = [
+    "lint-golangci",
+    "lint-gomod",
+]
+description = "Run go linter"
+
+[tasks.lint-yaml]
+description = "Run lint YAML files"
+hide        = true
+run         = "prettier --check '**/*.{yaml,yml}'"
+
+[tasks.lint-toml]
+description = "Run lint TOML files"
+hide        = true
+run         = "taplo format --check"
+
+[tasks.lint-other]
+depends = [
+    "lint-toml",
+    "lint-yaml",
+]
+description = "Run other linters"
+
+[tasks.lint-all]
+depends = [
+    "lint-action",
+    "lint-format",
+    "lint-go",
+]
+description = "Run all linters"
+
+[tasks.fix-yaml]
+description = "Run fix YAML files"
+hide        = true
+run         = "prettier '**/*.{yaml,yml}'"
+
+[tasks.fix-toml]
+description = "Run fix TOML files"
+hide        = true
+run         = "taplo format"
+
+[tasks.fix-other]
+depends = [
+    "fix-toml",
+    "fix-yaml",
+]
+description = "Run other formatter"
 
 [tools]
 actionlint                     = "1.7.7"
 "aqua:suzuki-shunsuke/ghalint" = "1.5.1"
 golangci-lint                  = "2.1.6"
+"npm:@taplo/cli"               = "0.7.0"
+"npm:prettier"                 = "3.4.2"
 "pipx:zizmor"                  = "1.9.0"
