@@ -1,8 +1,8 @@
 [tasks]
 build-install     = "gh extension remove gh-reassign-reviewer || true && go build . && gh extension install ."
 extension-install = "gh extension install ryo246912/gh-reassign-reviewer"
-lint-go           = "golangci-lint run"
 lint-action       = "actionlint -ignore 'SC2016:' || true && ghalint run || true && zizmor --pedantic --gh-token=$(gh auth token) --min-severity=low .github/workflows"
+lint-go           = "golangci-lint run"
 run               = "go run ."
 
 [tools]
