@@ -1,5 +1,33 @@
 [tasks.go-build]
-run = "go run ."
+run = "go run ./cmd/gh-reassign-reviewer"
+
+[tasks.test]
+description = "Run all tests"
+run         = "go test -v ./..."
+
+[tasks.test-coverage]
+description = "Run tests with coverage report"
+run = [
+    "go test -v -coverprofile=tmp/coverage.out -covermode=atomic ./...",
+    "go tool cover -func=tmp/coverage.out",
+    "go tool cover -html=tmp/coverage.out -o tmp/coverage.html",
+]
+
+[tasks.test-race]
+description = "Run tests with race detector"
+run         = "go test -v -race ./..."
+
+[tasks.test-bench]
+description = "Run benchmark tests"
+run         = "go test -v -bench=. -benchmem ./..."
+
+[tasks.test-verbose]
+description = "Run tests with verbose output and detailed results"
+run         = "go test -v -count=1 -failfast ./..."
+
+[tasks.test-short]
+description = "Run only fast tests (skip slow integration tests)"
+run         = "go test -v -short ./..."
 
 [tasks.extension-remote-install]
 description = "install gh-reassign-reviewer extension"
@@ -8,14 +36,14 @@ run         = "gh extension install ryo246912/gh-reassign-reviewer"
 [tasks.extension-local-install]
 description = "install gh-reassign-reviewer extension(local)"
 run = [
-    "go build .",
+    "go build ./cmd/gh-reassign-reviewer",
     "gh extension install .",
 ]
 
 [tasks.extension-build-install]
 description = "Rebuild and install gh-reassign-reviewer extension"
 run = [
-    "gh extension remove gh-reassign-reviewer",
+    "gh extension remove gh-reassign-reviewer || true",
     "mise run extension-local-install",
 ]
 
@@ -47,6 +75,7 @@ description = "Run golangci-lint"
 run         = "golangci-lint run"
 
 [tasks.lint-gomod]
+alias       = "fix-gomod"
 description = "go mod tidy"
 run         = "go mod tidy"
 
@@ -56,6 +85,14 @@ depends = [
     "lint-gomod",
 ]
 description = "Run go linter"
+
+[tasks.dev]
+depends = [
+    "test-coverage",
+    "lint-go",
+    "go-build",
+]
+description = "Development workflow: test + lint + build"
 
 [tasks.lint-yaml]
 description = "Run lint YAML files"
@@ -85,12 +122,15 @@ description = "Run all linters"
 [tasks.fix-yaml]
 description = "Run fix YAML files"
 hide        = true
-run         = "prettier '**/*.{yaml,yml}'"
+run         = "prettier --write '**/*.{yaml,yml}'"
 
 [tasks.fix-toml]
 description = "Run fix TOML files"
 hide        = true
 run         = "taplo format"
+[tasks.fix-action]
+description = "Run fix actions files"
+run         = ["pinact run", "disable-checkout-persist-credentials"]
 
 [tasks.fix-other]
 depends = [
@@ -98,6 +138,16 @@ depends = [
     "fix-yaml",
 ]
 description = "Run other formatter"
+[tasks.fix-golangci]
+description = "Run fix golangci"
+hide        = true
+run         = "golangci-lint run --fix"
+[tasks.fix-go]
+depends = [
+    "fix-golangci",
+    "fix-gomod",
+]
+description = "Run go formatter"
 
 [tools]
 actionlint                     = "1.7.7"
