@@ -1,6 +1,11 @@
 name: release
 on:
   workflow_dispatch:
+    inputs:
+      draft_release:
+        description: "Create a draft release"
+        required: false
+        default: "true"
   push:
     branches:
       - main
@@ -13,7 +18,9 @@ concurrency:
 
 jobs:
   release:
-    if: ${{ github.ref_name == 'main' && ! contains(github.event.head_commit.message, '[no tag]') }}
+    if: >-
+      (github.ref_name == 'main' && !contains(github.event.head_commit.message, '[no tag]')) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -53,3 +60,4 @@ jobs:
           go_build_options: "./cmd/gh-reassign-reviewer"
           go_version_file: go.mod
           release_tag: ${{ env.release_tag }}
+          draft_release: "${{ github.event.inputs.draft_release || false }}"
