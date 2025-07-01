@@ -2,8 +2,6 @@ name: release
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
 
 permissions: {}
 
@@ -13,7 +11,6 @@ concurrency:
 
 jobs:
   release:
-    if: ${{ github.ref_name == 'main' && ! contains(github.event.head_commit.message, '[no tag]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -52,4 +49,4 @@ jobs:
         with:
           go_build_options: "./cmd/gh-reassign-reviewer"
           go_version_file: go.mod
-          release_tag: ${{ env.release_tag }}
+          release_tag: "test-${{ env.release_tag }}"
