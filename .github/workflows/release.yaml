@@ -1,6 +1,11 @@
 name: release
 on:
   workflow_dispatch:
+    inputs:
+      draft_release:
+        description: "Create a draft release"
+        required: false
+        default: true
   push:
 
 permissions: {}
@@ -49,5 +54,5 @@ jobs:
         with:
           go_build_options: "./cmd/gh-reassign-reviewer"
           go_version_file: go.mod
-          draft_release: true
-          release_tag: "${{ env.release_tag }}-preview"
+          draft_release: "${{ github.event.inputs.draft_release || false }}"
+          release_tag: "${{ env.release_tag }}${{ github.event.inputs.draft_release == 'true' && '-preview' || '' }}"
