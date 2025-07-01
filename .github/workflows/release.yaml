@@ -49,4 +49,5 @@ jobs:
         with:
           go_build_options: "./cmd/gh-reassign-reviewer"
           go_version_file: go.mod
-          release_tag: "test-${{ env.release_tag }}"
+          draft_release: true
+          release_tag: "${{ env.release_tag }}-preview"
