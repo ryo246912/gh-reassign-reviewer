@@ -54,5 +54,5 @@ jobs:
         with:
           go_build_options: "./cmd/gh-reassign-reviewer"
           go_version_file: go.mod
-          draft_release: "${{ github.event.inputs.draft_release || false }}"
-          release_tag: "${{ env.release_tag }}${{ github.event.inputs.draft_release == 'true' && '-preview' || '' }}"
+          draft_release: "${{ github.event.inputs.draft_release || true }}"
+          release_tag: "${{ env.release_tag }}${{ github.event.inputs.draft_release && '' || '-preview' }}"
